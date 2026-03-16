@@ -1,3 +1,19 @@
+---
+pdf_options:
+  format: a4
+  margin: 20mm
+launch_options:
+  args: ['--no-sandbox', '--disable-setuid-sandbox']
+stylesheet: 'https://fonts.googleapis.com/css2?family=Noto+Sans+SC&display=swap'
+css: |
+  body { font-family: 'Noto Sans SC', sans-serif; }
+  table { border-collapse: collapse; width: 100%; margin: 20px 0; }
+  th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+  th { background-color: #f5f5f5; }
+  code { background-color: #f0f0f0; padding: 2px 6px; border-radius: 3px; }
+  pre { background-color: #f5f5f5; padding: 15px; border-radius: 5px; overflow-x: auto; }
+---
+
 # Database Schema
 
 Multi-Agent Management System 既資料庫結構文檔。

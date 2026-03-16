@@ -1,8 +1,7 @@
 from fastapi import APIRouter, Request, Depends
 from utils import common, manage_utils
-from sqlalchemy.orm import Session
 from database.models import Chat, Task
-from datetime import datetime
+from sqlalchemy.orm import Session
 import uuid
 
 chat_router = APIRouter()
@@ -12,7 +11,6 @@ chat_router = APIRouter()
 @manage_utils.auth_required
 async def list_chats(request: Request, db: Session = Depends(common.get_db)):
     """獲取 Chat 列表 (按 task_id 過濾)"""
-    user = manage_utils.get_system_user_from_header(request, db)
     data = await request.json()
 
     task_id = data.get('task_id')
@@ -110,7 +108,6 @@ async def create_chat(request: Request, db: Session = Depends(common.get_db)):
 @manage_utils.auth_required
 async def update_chat(request: Request, db: Session = Depends(common.get_db)):
     """更新 Chat 訊息"""
-    user = manage_utils.get_system_user_from_header(request, db)
     data = await request.json()
 
     chat_id = data.get('chat_id')
@@ -141,7 +138,6 @@ async def update_chat(request: Request, db: Session = Depends(common.get_db)):
 @manage_utils.auth_required
 async def delete_chat(request: Request, db: Session = Depends(common.get_db)):
     """刪除 Chat 訊息"""
-    user = manage_utils.get_system_user_from_header(request, db)
     
     chat_id = request.query_params.get('chat_id', None)
     

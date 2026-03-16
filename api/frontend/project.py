@@ -88,7 +88,6 @@ async def create_project(request: Request, db: Session = Depends(common.get_db))
     description = data.get('description', '')
     status = data.get('status', 'active')
     workspace_path = data.get('workspace_path', '')
-    tags = data.get('tags', [])
     
     if not name:
         return common.standard_response(status="error", error_code=400, error_message="項目名稱不能为空")
@@ -100,7 +99,6 @@ async def create_project(request: Request, db: Session = Depends(common.get_db))
     new_project.status = status
     new_project.workspace_path = workspace_path
     new_project.owner_id = user.user_id
-    new_project.tags = json.dumps(tags) if isinstance(tags, list) else tags
     
     db.add(new_project)
     db.commit()
@@ -139,8 +137,6 @@ async def update_project(request: Request, db: Session = Depends(common.get_db))
         project.status = data['status']
     if 'workspace_path' in data:
         project.workspace_path = data['workspace_path']
-    if 'tags' in data:
-        project.tags = json.dumps(data['tags']) if isinstance(data['tags'], list) else data['tags']
     
     db.commit()
     db.refresh(project)

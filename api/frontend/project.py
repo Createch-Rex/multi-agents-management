@@ -52,12 +52,7 @@ async def list_projects(request: Request, db: Session = Depends(common.get_db)):
     
     return common.standard_response(response_data={
         "projects": project_list,
-        "pagination": {
-            "page": page,
-            "page_size": page_size,
-            "total": total,
-            "total_pages": (total + page_size - 1) // page_size
-        }
+        "total": total
     })
 
 

@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Request, Depends
 from utils import common, manage_utils
 from sqlalchemy.orm import Session
-from database.models import Project, User, Worker
+from database.models import Project, User, Worker, ProjectWorker
+from datetime import datetime
 import config
 import jwt
 import json
@@ -178,9 +179,8 @@ async def delete_project(request: Request, db: Session = Depends(common.get_db))
 @project_router.post("/assign-worker")
 @manage_utils.auth_required
 async def assign_worker_to_project(request: Request, db: Session = Depends(common.get_db)):
-    """分配 Worker 比項目 (可考慮加中間表 project_workers)"""
-    # TODO: 如果需要 many-to-many 關係，需要加 project_workers 表
-    # 而家暂时返回 success，實際邏輯可以後面加
+    """分配 Worker 比項目 (使用 project_worker 中間表)"""
+    user = manage_utils.get_system_user_from_header(request, db)
     data = await request.json()
     project_id = data.get('project_id')
     worker_id = data.get('worker_id')
@@ -195,4 +195,31 @@ async def assign_worker_to_project(request: Request, db: Session = Depends(commo
     if not project or not worker:
         return common.standard_response(status="error", error_code=404, error_message="項目或 Worker 不存在")
     
-    return common.standard_response(response_data={"message": "Worker 分配成功", "project_id": project_id, "worker_id": worker_id})
+    # 檢查是否已經存在呢個 assignment
+    existing = db.query(ProjectWorker).filter(
+        ProjectWorker.project_id == project_id,
+        ProjectWorker.worker_id == worker_id,
+        ProjectWorker.status == "active"
+    ).first()
+    
+    if existing:
+        return common.standard_response(status="error", error_code=409, error_message="呢個 Worker 已經分配咗比呢個項目")
+    
+    # 創建新 assignment
+    new_assignment = ProjectWorker()
+    new_assignment.project_id = project_id
+    new_assignment.worker_id = worker_id
+    new_assignment.assigned_by = user.user_id
+    new_assignment.assigned_at = datetime.now()
+    new_assignment.status = "active"
+    
+    db.add(new_assignment)
+    db.commit()
+    db.refresh(new_assignment)
+    
+    return common.standard_response(response_data={
+        "message": "Worker 分配成功",
+        "project_id": project_id,
+        "worker_id": worker_id,
+        "assigned_at": new_assignment.assigned_at.isoformat() if new_assignment.assigned_at else None
+    })

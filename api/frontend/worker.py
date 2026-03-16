@@ -11,7 +11,6 @@ worker_router = APIRouter()
 @manage_utils.auth_required
 async def list_workers(request: Request, db: Session = Depends(common.get_db)):
     """獲取 Worker 列表 (支持 pagination, search, filter)"""
-    user = manage_utils.get_system_user_from_header(request, db)
     data = await request.json()
 
     page = data.get('page', 1)
@@ -102,7 +101,7 @@ async def create_worker(request: Request, db: Session = Depends(common.get_db)):
     new_worker.heartbeat_interval = heartbeat_interval
     new_worker.capabilities = json.dumps(capabilities) if isinstance(capabilities, list) else capabilities
     new_worker.max_concurrent_tasks = max_concurrent_tasks
-    new_worker.status = "offline"
+    new_worker.status = "online"
     
     db.add(new_worker)
     db.commit()
@@ -209,6 +208,8 @@ async def worker_heartbeat(request: Request, db: Session = Depends(common.get_db
     
     db.commit()
     db.refresh(worker)
+
+    # start worker session to complete assigned tasks
     
     return common.standard_response(response_data={
         "message": "心跳更新成功",

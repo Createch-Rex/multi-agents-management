@@ -43,6 +43,9 @@ async def list_projects(request: Request, db: Session = Depends(common.get_db)):
     # Get total count BEFORE applying pagination
     total = query.count() + 0
     
+    # Order by created_at (newest first) before pagination
+    query = query.order_by(Project.created_at.desc())
+    
     # Calculate offset and apply pagination
     offset = (page - 1) * page_size
     projects = query.offset(offset).limit(page_size).all()

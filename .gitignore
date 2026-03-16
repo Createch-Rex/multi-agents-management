@@ -24,8 +24,6 @@ pnpm-debug.log*
 *.njsproj
 *.sln
 *.sw?
-/cice_export.py
 /.env
 /static/web/assets/
-/cice_export.py
 *.csv

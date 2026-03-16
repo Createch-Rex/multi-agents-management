@@ -20,7 +20,6 @@ async def list_projects(request: Request, db: Session = Depends(common.get_db)):
     page_size = data.get('page_size', 20)
     search_key = data.get('search_key', None)
     status = data.get('status', None)
-    tags = data.get('tags', None)
 
     # Build query
     query = db.query(Project)

@@ -52,7 +52,6 @@ async def list_users(request: Request, db: Session = Depends(common.get_db)):
     user_list = []
     for u in users:
         user_dict = u.get_dict()
-        user_dict.pop('password', None)
         user_list.append(user_dict)
     
     return common.standard_response(response_data={
@@ -82,7 +81,6 @@ async def get_user(request: Request, db: Session = Depends(common.get_db)):
     
     # 唔好返回 password
     user_dict = user.get_dict()
-    user_dict.pop('password', None)
     
     return common.standard_response(response_data={"user": user_dict})
 
@@ -128,7 +126,6 @@ async def create_user(request: Request, db: Session = Depends(common.get_db)):
     
     # 唔好返回 password
     user_dict = new_user.get_dict()
-    user_dict.pop('password', None)
     
     return common.standard_response(response_data={"user": user_dict})
 
@@ -178,7 +175,6 @@ async def update_user(request: Request, db: Session = Depends(common.get_db)):
     
     # 唔好返回 password
     user_dict = user.get_dict()
-    user_dict.pop('password', None)
     
     return common.standard_response(response_data={"user": user_dict})
 

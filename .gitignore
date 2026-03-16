@@ -1,0 +1,31 @@
+.DS_Store
+node_modules
+/dist
+/venv
+.angular
+
+__pycache__
+
+# local env files
+.env.local
+.env.*.local
+
+# Log files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editor directories and files
+.idea
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+/cice_export.py
+/.env
+/static/web/assets/
+/cice_export.py
+*.csv

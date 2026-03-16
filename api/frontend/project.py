@@ -9,25 +9,19 @@ import json
 project_router = APIRouter()
 
 
-@project_router.get("/list")
+@project_router.post("/list")
 @manage_utils.auth_required
 async def list_projects(request: Request, db: Session = Depends(common.get_db)):
-    """獲取所有項目列表 (支持 filter by status)"""
-    user = manage_utils.get_system_user_from_header(request, db)
-    status = request.query_params.get('status', None)
+    data = await request.json()
+
+    page = data.get('page', 1)
+    page_size = data.get('page_size', 20)
+    search_key = data.get('search_key', None)
+
+    rep = []
+
     
-    query = db.query(Project)
-    if status:
-        query = query.filter(Project.status == status)
-    
-    # 如果是普通用戶，只返回自己既項目
-    if user.role != 'admin':
-        query = query.filter(Project.owner_id == user.user_id)
-    
-    projects = query.all()
-    project_list = [p.get_dict() for p in projects]
-    
-    return common.standard_response(response_data={"projects": project_list})
+    return common.standard_response(response_data={"projects": rep})
 
 
 @project_router.get("/get")

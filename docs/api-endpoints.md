@@ -31,11 +31,93 @@ Multi-Agent Management System 既 API 接口文檔。
 
 ---
 
+## Auth APIs (認證)
+
+**Router:** `api/frontend/auth.py`
+
+### 1. 登錄
+
+**Endpoint:** `POST /auth/login`
+
+**Method:** <span class="method-post">POST</span>
+
+**Description:** 用戶登錄
+
+**Request Body:**
+```json
+{
+  "username": "user",
+  "password": "pass123"
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "data": {
+    "token": "jwt_token_xxx",
+    "user": {...}
+  }
+}
+```
+
+---
+
+### 2. 註冊
+
+**Endpoint:** `POST /auth/register`
+
+**Method:** <span class="method-post">POST</span>
+
+**Description:** 用戶註冊
+
+**Request Body:**
+```json
+{
+  "username": "newuser",
+  "password": "pass123",
+  "email": "user@example.com"
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "data": {
+    "user": {...}
+  }
+}
+```
+
+---
+
+### 3. 登出
+
+**Endpoint:** `POST /auth/logout`
+
+**Method:** <span class="method-post">POST</span>
+
+**Description:** 用戶登出
+
+**Response:**
+```json
+{
+  "status": "success",
+  "data": {
+    "message": "登出成功"
+  }
+}
+```
+
+---
+
 ## Project APIs (項目管理)
 
 **Router:** `api/frontend/project.py`
 
-### 1. 獲取項目列表
+### 4. 獲取項目列表
 
 **Endpoint:** `POST /project/list`
 
@@ -79,7 +161,7 @@ Multi-Agent Management System 既 API 接口文檔。
 
 ---
 
-### 2. 獲取單一項目
+### 5. 獲取單一項目
 
 **Endpoint:** `GET /project/get`
 
@@ -113,7 +195,7 @@ GET /project/get?project_id=xxx
 
 ---
 
-### 3. 創建新項目
+### 6. 創建新項目
 
 **Endpoint:** `POST /project/create`
 
@@ -158,7 +240,7 @@ GET /project/get?project_id=xxx
 
 ---
 
-### 4. 更新項目
+### 7. 更新項目
 
 **Endpoint:** `PUT /project/update`
 
@@ -203,7 +285,7 @@ GET /project/get?project_id=xxx
 
 ---
 
-### 5. 刪除項目
+### 8. 刪除項目
 
 **Endpoint:** `DELETE /project/delete`
 
@@ -241,7 +323,7 @@ DELETE /project/delete?project_id=xxx
 
 ---
 
-### 6. 分配 Worker 比項目
+### 9. 分配 Worker 比項目
 
 **Endpoint:** `POST /project/assign-worker`
 
@@ -292,23 +374,24 @@ DELETE /project/delete?project_id=xxx
 
 ---
 
-## Auth APIs (認證)
+## Worker APIs (Worker 管理)
 
-**Router:** `api/frontend/auth.py`
+**Router:** `api/frontend/worker.py`
 
-### 登錄
+### 10. 獲取 Worker 列表
 
-**Endpoint:** `POST /auth/login`
+**Endpoint:** `POST /worker/list`
 
 **Method:** <span class="method-post">POST</span>
 
-**Description:** 用戶登錄
+**Description:** 獲取 Worker 列表 (支持 pagination, search)
 
 **Request Body:**
 ```json
 {
-  "username": "user",
-  "password": "pass123"
+  "page": 1,
+  "page_size": 20,
+  "search_key": "keyword"
 }
 ```
 
@@ -317,11 +400,382 @@ DELETE /project/delete?project_id=xxx
 {
   "status": "success",
   "data": {
-    "token": "jwt_token_xxx",
-    "user": {...}
+    "workers": [...],
+    "total": 100,
+    "page": 1,
+    "page_size": 20
   }
 }
 ```
+
+---
+
+### 11. 獲取單一 Worker
+
+**Endpoint:** `GET /worker/get`
+
+**Method:** <span class="method-get">GET</span>
+
+**Description:** 獲取單一 Worker 詳情
+
+**Query Parameters:**
+| 字段 | 類型 | 必填 | 說明 |
+|------|------|------|------|
+| `worker_id` | String | 是 | Worker ID |
+
+---
+
+### 12. 創建 Worker
+
+**Endpoint:** `POST /worker/create`
+
+**Method:** <span class="method-post">POST</span>
+
+**Description:** 創建新 Worker
+
+**Request Body:**
+```json
+{
+  "name": "Worker 名稱",
+  "description": "描述",
+  "config": {}
+}
+```
+
+---
+
+### 13. 更新 Worker
+
+**Endpoint:** `PUT /worker/update`
+
+**Method:** <span class="method-put">PUT</span>
+
+**Description:** 更新 Worker 資料
+
+**Request Body:**
+```json
+{
+  "worker_id": "xxx",
+  "name": "新名稱",
+  "description": "新描述",
+  "config": {}
+}
+```
+
+---
+
+### 14. 刪除 Worker
+
+**Endpoint:** `DELETE /worker/delete`
+
+**Method:** <span class="method-delete">DELETE</span>
+
+**Description:** 刪除 Worker
+
+**Query Parameters:**
+| 字段 | 類型 | 必填 | 說明 |
+|------|------|------|------|
+| `worker_id` | String | 是 | Worker ID |
+
+---
+
+## User APIs (用戶管理)
+
+**Router:** `api/frontend/user.py`
+
+### 15. 獲取用戶列表
+
+**Endpoint:** `POST /user/list`
+
+**Method:** <span class="method-post">POST</span>
+
+**Description:** 獲取用戶列表 (只有 admin 可用, 支持 pagination, search, role filter)
+
+**Request Body:**
+```json
+{
+  "page": 1,
+  "page_size": 20,
+  "search_key": "keyword",
+  "role": "user"
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "data": {
+    "users": [...],
+    "total": 100,
+    "page": 1,
+    "page_size": 20
+  }
+}
+```
+
+**權限:** 只有 admin 可以查看用戶列表
+
+---
+
+### 16. 獲取單一用戶
+
+**Endpoint:** `GET /user/get`
+
+**Method:** <span class="method-get">GET</span>
+
+**Description:** 獲取單一用戶詳情
+
+**Query Parameters:**
+| 字段 | 類型 | 必填 | 說明 |
+|------|------|------|------|
+| `user_id` | String | 是 | 用戶 ID |
+
+**權限:** 普通用戶只能查看自己
+
+---
+
+### 17. 創建用戶
+
+**Endpoint:** `POST /user/create`
+
+**Method:** <span class="method-post">POST</span>
+
+**Description:** 創建新用戶 (只有 admin 可以)
+
+**Request Body:**
+```json
+{
+  "username": "newuser",
+  "password": "pass123",
+  "role": "user",
+  "email": "user@example.com"
+}
+```
+
+**權限:** 只有 admin 可以創建用戶
+
+---
+
+### 18. 更新用戶
+
+**Endpoint:** `PUT /user/update`
+
+**Method:** <span class="method-put">PUT</span>
+
+**Description:** 更新用戶資料
+
+**Request Body:**
+```json
+{
+  "user_id": "xxx",
+  "username": "新用戶名",
+  "email": "新email",
+  "role": "admin",
+  "password": "新密碼"
+}
+```
+
+**權限:**
+- 只有 admin 可以改 username 和 role
+- 其他用戶可以改自己既 email 和密碼
+
+---
+
+### 19. 刪除用戶
+
+**Endpoint:** `DELETE /user/delete`
+
+**Method:** <span class="method-delete">DELETE</span>
+
+**Description:** 刪除用戶 (只有 admin 可以)
+
+**Query Parameters:**
+| 字段 | 類型 | 必填 | 說明 |
+|------|------|------|------|
+| `user_id` | String | 是 | 用戶 ID |
+
+**Error Codes:**
+- `400`: 唔可以刪除自己
+- `409`: 用戶仲有項目或 Worker 分配記錄
+
+---
+
+## Chat APIs (對話管理)
+
+**Router:** `api/frontend/chat.py`
+
+### 20. 獲取 Chat 列表
+
+**Endpoint:** `POST /chat/list`
+
+**Method:** <span class="method-post">POST</span>
+
+**Description:** 獲取 Chat 列表 (按 task_id 過濾, 支持 pagination, search)
+
+**Request Body:**
+```json
+{
+  "task_id": "xxx",
+  "page": 1,
+  "page_size": 50,
+  "search_key": "keyword"
+}
+```
+
+**Parameters:**
+| 字段 | 類型 | 必填 | 說明 |
+|------|------|------|------|
+| `task_id` | String | 是 | Task ID |
+| `page` | Integer | 否 | 頁碼 (默認: 1) |
+| `page_size` | Integer | 否 | 每頁數量 (默認: 50) |
+| `search_key` | String | 否 | 搜索關鍵字 (message 內容) |
+
+**Response:**
+```json
+{
+  "status": "success",
+  "data": {
+    "chats": [
+      {
+        "chat_id": "xxx",
+        "task_id": "xxx",
+        "role": "user",
+        "message": "Hello",
+        "message_type": "user",
+        "created_at": "2026-03-16T14:00:00"
+      }
+    ],
+    "total": 100,
+    "page": 1,
+    "page_size": 50
+  }
+}
+```
+
+**Features:**
+- 按 `created_at` 升序 (舊既係前面)
+- 返回既 message 係實際既對話內容
+
+---
+
+### 21. 創建 Chat 訊息
+
+**Endpoint:** `POST /chat/create`
+
+**Method:** <span class="method-post">POST</span>
+
+**Description:** 創建新 Chat 訊息
+
+**Request Body:**
+```json
+{
+  "task_id": "xxx",
+  "role": "user",
+  "message": "Hello World",
+  "message_type": "user"
+}
+```
+
+**Parameters:**
+| 字段 | 類型 | 必填 | 說明 |
+|------|------|------|------|
+| `task_id` | String | 是 | Task ID |
+| `role` | String | 否 | 角色 (默認: user) |
+| `message` | String | 是 | 訊息內容 |
+| `message_type` | String | 否 | 訊息類型 (默認: user) |
+
+**Valid Values:**
+- `role`: `user`, `agent`, `system`
+- `message_type`: `user`, `agent`, `system`
+
+**Response:**
+```json
+{
+  "status": "success",
+  "data": {
+    "chat": {...}
+  }
+}
+```
+
+**Error Codes:**
+- `400`: 缺少 task_id 或 message
+- `404`: Task 不存在
+
+---
+
+### 22. 更新 Chat 訊息
+
+**Endpoint:** `PUT /chat/update`
+
+**Method:** <span class="method-put">PUT</span>
+
+**Description:** 更新 Chat 訊息
+
+**Request Body:**
+```json
+{
+  "chat_id": "xxx",
+  "message": "更新後既訊息",
+  "message_type": "agent"
+}
+```
+
+**Parameters:**
+| 字段 | 類型 | 必填 | 說明 |
+|------|------|------|------|
+| `chat_id` | String | 是 | Chat ID |
+| `message` | String | 否 | 新訊息內容 |
+| `message_type` | String | 否 | 新訊息類型 |
+
+**Response:**
+```json
+{
+  "status": "success",
+  "data": {
+    "chat": {...}
+  }
+}
+```
+
+**Error Codes:**
+- `400`: 缺少 chat_id
+- `404`: Chat 不存在
+
+---
+
+### 23. 刪除 Chat 訊息
+
+**Endpoint:** `DELETE /chat/delete`
+
+**Method:** <span class="method-delete">DELETE</span>
+
+**Description:** 刪除 Chat 訊息
+
+**Query Parameters:**
+| 字段 | 類型 | 必填 | 說明 |
+|------|------|------|------|
+| `chat_id` | String | 是 | Chat ID |
+
+**Request Example:**
+```
+DELETE /chat/delete?chat_id=xxx
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "data": {
+    "message": "Chat 已刪除"
+  }
+}
+```
+
+**Error Codes:**
+- `400`: 缺少 chat_id
+- `404`: Chat 不存在
 
 ---
 
@@ -360,13 +814,19 @@ DELETE /project/delete?project_id=xxx
 | 刪除自己項目 | ✅ | ✅ |
 | 刪除他人項目 | ❌ | ✅ |
 | 分配 Worker | ✅ | ✅ |
+| 查看用戶列表 | ❌ | ✅ |
+| 創建用戶 | ❌ | ✅ |
+| 刪除用戶 | ❌ | ✅ |
 
 ---
 
 ## 文件位置
 
-- **Project Router:** `api/frontend/project.py`
 - **Auth Router:** `api/frontend/auth.py`
+- **Project Router:** `api/frontend/project.py`
+- **Worker Router:** `api/frontend/worker.py`
+- **User Router:** `api/frontend/user.py`
+- **Chat Router:** `api/frontend/chat.py`
 - **Common Utils:** `utils/common.py`, `utils/manage_utils.py`
 
 ---

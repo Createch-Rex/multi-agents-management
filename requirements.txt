@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+sqlalchemy
+python-multipart
+mysql-connector-python
+PyJWT
+requests
+tqdm

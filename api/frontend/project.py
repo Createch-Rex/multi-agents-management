@@ -12,16 +12,54 @@ project_router = APIRouter()
 @project_router.post("/list")
 @manage_utils.auth_required
 async def list_projects(request: Request, db: Session = Depends(common.get_db)):
+    """獲取項目列表 (支持 pagination, search, filter)"""
+    user = manage_utils.get_system_user_from_header(request, db)
     data = await request.json()
 
     page = data.get('page', 1)
     page_size = data.get('page_size', 20)
     search_key = data.get('search_key', None)
+    status = data.get('status', None)
+    tags = data.get('tags', None)
 
-    rep = []
-
+    # Build query
+    query = db.query(Project)
     
-    return common.standard_response(response_data={"projects": rep})
+    # 如果是普通用戶，只返回自己既項目
+    if user.role != 'admin':
+        query = query.filter(Project.owner_id == user.user_id)
+    
+    # Filter by status
+    if status:
+        query = query.filter(Project.status == status)
+    
+    # Search by name or description
+    if search_key:
+        search_pattern = f"%{search_key}%"
+        query = query.filter(
+            (Project.name.like(search_pattern)) | 
+            (Project.description.like(search_pattern))
+        )
+    
+    # Get total count for pagination
+    total = query.count()
+    
+    # Calculate offset and apply pagination
+    offset = (page - 1) * page_size
+    projects = query.offset(offset).limit(page_size).all()
+    
+    # Format response
+    project_list = [p.get_dict() for p in projects]
+    
+    return common.standard_response(response_data={
+        "projects": project_list,
+        "pagination": {
+            "page": page,
+            "page_size": page_size,
+            "total": total,
+            "total_pages": (total + page_size - 1) // page_size
+        }
+    })
 
 
 @project_router.get("/get")

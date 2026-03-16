@@ -1,11 +1,8 @@
+from database.models import Project, Worker, ProjectWorker
 from fastapi import APIRouter, Request, Depends
 from utils import common, manage_utils
 from sqlalchemy.orm import Session
-from database.models import Project, User, Worker, ProjectWorker
 from datetime import datetime
-import config
-import jwt
-import json
 
 project_router = APIRouter()
 

@@ -137,6 +137,30 @@ Multi-Agent Management System 既資料庫結構文檔。
 
 ---
 
+### 6. ProjectWorker (項目-工作者關聯表)
+
+**表名:** `project_worker`
+
+| 字段 | 類型 | 說明 |
+|------|------|------|
+| `project_id` | String(255) | 主鍵 + 外鍵 → `project.project_id` |
+| `worker_id` | String(255) | 主鍵 + 外鍵 → `worker.worker_id` |
+| `assigned_at` | DateTime | 分配時間 (默認: now) |
+| `assigned_by` | String(255) | 外鍵 → `user.user_id` (分配者) |
+| `status` | String(50) | 狀態 (active/inactive/removed, 默認: active) |
+
+**關係:**
+- N:1 → Project (通過 `project_id`)
+- N:1 → Worker (通過 `worker_id`)
+- N:1 → User (通過 `assigned_by`)
+
+**說明:**
+- 呢個係中間表 (junction table)，實現 Project 同 Worker 既 many-to-many 關係
+- Composite Primary Key: `(project_id, worker_id)`
+- 可以記錄邊個 (`assigned_by`) 喺幾時 (`assigned_at`) 分配咗個 Worker 比個 Project
+
+---
+
 ## 實體關係圖 (ER Diagram)
 
 ```
@@ -150,14 +174,14 @@ Multi-Agent Management System 既資料庫結構文檔。
 ┌─────────────┐         ┌─────────────┐
 │   Project   │────────▶│    Task     │
 │  (項目)     │  1:N    │  (任務)     │
-└─────────────┘         └──────┬──────┘
-                               │ 1:N
-                               │
-                               ▼
-                        ┌─────────────┐
-                        │    Worker   │
-                        │  (工作者)   │
-                        └─────────────┘
+└──────┬──────┘         └──────┬──────┘
+       │                      │ 1:N
+       │ M:N                  │
+       ▼                      ▼
+┌─────────────┐         ┌─────────────┐
+│ProjectWorker│◀────────│    Worker   │
+│(關聯表)     │         │  (工作者)   │
+└─────────────┘         └─────────────┘
                                │
                                │ 1:N (through Task)
                                │
@@ -192,4 +216,4 @@ Multi-Agent Management System 既資料庫結構文檔。
 
 ---
 
-*文檔更新日期: 2026-03-16*
+*文檔更新日期: 2026-03-16 (加咗 ProjectWorker model)*

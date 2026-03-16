@@ -8,6 +8,10 @@ else:
     ROOT_DIR = os.getcwd()
 
 STATIC_DIR = os.path.join(ROOT_DIR, 'static')
+WEB_DIR = os.path.join(STATIC_DIR, 'web')
+MEDIA_DIR = os.path.join(STATIC_DIR, 'media')
+
+SYSTEM_KEY = "61p7i5b69sIDwk94LfF5EafmVDv4KzGO"
 
 DATABASE_NAME = "multi_agent_management"
 DATABASE_HOST = "10.18.0.30"

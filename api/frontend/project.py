@@ -40,8 +40,8 @@ async def list_projects(request: Request, db: Session = Depends(common.get_db)):
             (Project.description.like(search_pattern))
         )
     
-    # Get total count for pagination
-    total = query.count()
+    # Get total count BEFORE applying pagination
+    total = query.count() + 0
     
     # Calculate offset and apply pagination
     offset = (page - 1) * page_size

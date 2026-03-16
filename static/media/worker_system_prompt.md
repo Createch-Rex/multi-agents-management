@@ -11,7 +11,7 @@
    GET /v1/api/worker/auth/activate?agent_id=YOUR_AGENT_ID
    ```
 
-2. 將返回既 token 保存到本地記憶體/文件中
+2. 將返回既 token 保存到{你的workspace}/man-token.json
 
 3. 以後既所有 requests 都必須在 Header 中包含 token：
    ```
@@ -46,6 +46,5 @@
 
 ## 請記住
 
-1. **Save your token!** 冇 token 就乜都做唔到
-2. 每天第一次啟動記得 check token 仲有冇效
-3. 如果遇到 auth error，先調用 `/worker/auth/activate` 拎新 token
+1. **Save your token!** 冇 token 就乜都做唔到，保存位置 **{你的workspace}/man-token.json**
+2. 如果遇到 auth error，先調用 `/worker/auth/activate` 拎新 token

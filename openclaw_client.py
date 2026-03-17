@@ -10,6 +10,7 @@ Endpoints:
 - POST /tools/invoke    - 調用 tool (sessions_list / sessions_history 等)
 """
 
+import json
 import time
 from dataclasses import dataclass
 from typing import Optional, Dict, Any, List
@@ -37,21 +38,11 @@ class OpenClawClient:
 
     # ==================== WEBHOOK ENDPOINTS ====================
 
-    def wake(
-        self,
-        text: str,
-        mode: str = "now"
-    ) -> Dict[str, Any]:
-        """
-        POST /hooks/wake - 觸發 main session heartbeat
-        """
-        data = {
-            "text": text,
-            "mode": mode
-        }
+    def wake(self, text: str, mode: str = "now") -> Dict[str, Any]:
+        """POST /hooks/wake - 觸發 main session heartbeat"""
         return self._post_json(
             path=f"{self.config.hooks_path}/wake",
-            payload=data,
+            payload={"text": text, "mode": mode},
             headers=self._get_hooks_headers(),
             timeout=self.config.timeout,
         )
@@ -71,14 +62,8 @@ class OpenClawClient:
         timeout_seconds: int = 120,
         request_timeout: Optional[int] = None,
     ) -> Dict[str, Any]:
-        """
-        POST /hooks/agent - 觸發 isolated agent run
-
-        注意：
-        - OpenClaw docs 指出 deliver 預設係 true，所以唔想送出訊息要明確傳 deliver=False
-        - sessionKey 只有在 hooks.allowRequestSessionKey=true 時先可由 request 指定
-        """
-        data = {
+        """POST /hooks/agent - 觸發 isolated agent run"""
+        data: Dict[str, Any] = {
             "message": message,
             "wakeMode": wake_mode,
             "timeoutSeconds": timeout_seconds,
@@ -108,14 +93,8 @@ class OpenClawClient:
             timeout=request_timeout or self.config.timeout,
         )
 
-    def call_mapped_hook(
-        self,
-        hook_name: str,
-        payload: Dict[str, Any],
-    ) -> Dict[str, Any]:
-        """
-        POST /hooks/<name> - 調用自定義 mapping hook
-        """
+    def call_mapped_hook(self, hook_name: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """POST /hooks/<name> - 調用自定義 mapping hook"""
         return self._post_json(
             path=f"{self.config.hooks_path}/{hook_name}",
             payload=payload,
@@ -131,9 +110,7 @@ class OpenClawClient:
         args: Optional[Dict[str, Any]] = None,
         session_key: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """
-        POST /tools/invoke - 調用 OpenClaw tool
-        """
+        """POST /tools/invoke - 調用 OpenClaw tool"""
         data: Dict[str, Any] = {"tool": tool}
         if args:
             data["args"] = args
@@ -149,17 +126,16 @@ class OpenClawClient:
 
     # ==================== SESSION HELPERS ====================
 
-    def get_session_history(
-        self,
-        session_key: str,
-        limit: int = 20,
-        include_tools: bool = False,
-    ) -> Dict[str, Any]:
+    def get_session_history(self, session_key: str, limit: int = 20, include_tools: bool = False) -> Dict[str, Any]:
         return self.invoke_tool("sessions_history", {
             "sessionKey": session_key,
             "limit": limit,
             "includeTools": include_tools,
         })
+
+    def get_session_history_details(self, session_key: str, limit: int = 20, include_tools: bool = False) -> Dict[str, Any]:
+        result = self.get_session_history(session_key, limit=limit, include_tools=include_tools)
+        return self._extract_result_details(result)
 
     def list_sessions(
         self,
@@ -173,6 +149,15 @@ class OpenClawClient:
         if active_minutes:
             args["activeMinutes"] = active_minutes
         return self.invoke_tool("sessions_list", args)
+
+    def list_sessions_details(
+        self,
+        kinds: Optional[List[str]] = None,
+        limit: int = 50,
+        active_minutes: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        result = self.list_sessions(kinds=kinds, limit=limit, active_minutes=active_minutes)
+        return self._extract_result_details(result)
 
     # ==================== SYNC CALL (POLLING) ====================
 
@@ -191,16 +176,9 @@ class OpenClawClient:
         model: Optional[str] = None,
         thinking: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """
-        同步呼叫 Agent (先 webhook，再 poll sessions_history 等回覆)
-
-        做法：
-        1. 先取一次 session history 做 baseline
-        2. call /hooks/agent
-        3. 只接受 baseline 之後新增嘅 assistant message
-        """
-        baseline_result = self.get_session_history(session_key, limit=100)
-        baseline_messages = self._extract_messages(baseline_result)
+        """同步呼叫 Agent (先 webhook，再 poll sessions_history 等回覆)"""
+        baseline_result = self.get_session_history_details(session_key, limit=100, include_tools=True)
+        baseline_messages = self._extract_messages_from_details(baseline_result)
         baseline_ids = self._collect_message_ids(baseline_messages)
         baseline_len = len(baseline_messages)
 
@@ -231,42 +209,44 @@ class OpenClawClient:
 
         while time.time() - start_time < timeout:
             time.sleep(poll_interval)
-            history_result = self.get_session_history(session_key, limit=100)
-
-            if not history_result.get("ok"):
-                continue
-
-            messages = self._extract_messages(history_result)
+            history_result = self.get_session_history_details(session_key, limit=100, include_tools=True)
+            messages = self._extract_messages_from_details(history_result)
             new_messages = self._filter_new_messages(messages, baseline_ids, baseline_len)
-            assistant_messages = [msg for msg in new_messages if self._message_role(msg) == "assistant" and self._message_content(msg).strip()]
 
-            if assistant_messages:
-                latest = assistant_messages[-1]
+            candidate_messages = []
+            for msg in new_messages:
+                if self._message_role(msg) != "assistant":
+                    continue
+                normalized = self._message_text(msg)
+                if normalized.strip():
+                    candidate_messages.append({
+                        "raw": msg,
+                        "text": normalized,
+                    })
+
+            if candidate_messages:
+                latest = candidate_messages[-1]
                 return {
                     "status": "ok",
                     "runId": run_id,
-                    "reply": self._message_content(latest),
-                    "message": latest,
+                    "reply": latest["text"],
+                    "message": latest["raw"],
                     "messages": messages,
+                    "details": history_result,
                 }
 
-        final_history = self.get_session_history(session_key, limit=100)
+        final_history = self.get_session_history_details(session_key, limit=100, include_tools=True)
         return {
             "status": "timeout",
             "runId": run_id,
             "error": f"Agent did not respond within {timeout} seconds",
-            "messages": self._extract_messages(final_history),
+            "messages": self._extract_messages_from_details(final_history),
+            "details": final_history,
         }
 
     # ==================== PRIVATE HELPERS ====================
 
-    def _post_json(
-        self,
-        path: str,
-        payload: Dict[str, Any],
-        headers: Dict[str, str],
-        timeout: int,
-    ) -> Dict[str, Any]:
+    def _post_json(self, path: str, payload: Dict[str, Any], headers: Dict[str, str], timeout: int) -> Dict[str, Any]:
         url = f"{self.base_url}{path}"
         try:
             response = requests.post(url, json=payload, headers=headers, timeout=timeout)
@@ -296,51 +276,92 @@ class OpenClawClient:
             data.setdefault("status_code", response.status_code)
         return data
 
-    def _extract_messages(self, history_result: Dict[str, Any]) -> List[Dict[str, Any]]:
-        result = history_result.get("result", {}) if isinstance(history_result, dict) else {}
-        messages = result.get("messages", [])
+    def _extract_result_details(self, tool_result: Dict[str, Any]) -> Dict[str, Any]:
+        result = tool_result.get("result", {}) if isinstance(tool_result, dict) else {}
+        if isinstance(result, dict):
+            details = result.get("details")
+            if isinstance(details, dict):
+                return details
+
+            content = result.get("content")
+            if isinstance(content, list):
+                for block in content:
+                    if isinstance(block, dict) and block.get("type") == "text":
+                        text = block.get("text")
+                        if isinstance(text, str):
+                            try:
+                                parsed = json.loads(text)
+                                if isinstance(parsed, dict):
+                                    return parsed
+                            except json.JSONDecodeError:
+                                pass
+        return {}
+
+    def _extract_messages_from_details(self, details: Dict[str, Any]) -> List[Dict[str, Any]]:
+        messages = details.get("messages", []) if isinstance(details, dict) else []
         return messages if isinstance(messages, list) else []
 
     def _collect_message_ids(self, messages: List[Dict[str, Any]]) -> set:
         ids = set()
         for msg in messages:
-            for key in ("id", "messageId", "uuid"):
+            for key in ("id", "messageId", "uuid", "timestamp"):
                 value = msg.get(key)
-                if value:
+                if value is not None:
                     ids.add(str(value))
+                    break
         return ids
 
-    def _filter_new_messages(
-        self,
-        messages: List[Dict[str, Any]],
-        baseline_ids: set,
-        baseline_len: int,
-    ) -> List[Dict[str, Any]]:
+    def _filter_new_messages(self, messages: List[Dict[str, Any]], baseline_ids: set, baseline_len: int) -> List[Dict[str, Any]]:
         new_messages: List[Dict[str, Any]] = []
         for idx, msg in enumerate(messages):
-            msg_id = None
-            for key in ("id", "messageId", "uuid"):
+            identity = None
+            for key in ("id", "messageId", "uuid", "timestamp"):
                 value = msg.get(key)
-                if value:
-                    msg_id = str(value)
+                if value is not None:
+                    identity = str(value)
                     break
 
-            if msg_id:
-                if msg_id not in baseline_ids:
+            if identity is not None:
+                if identity not in baseline_ids:
                     new_messages.append(msg)
             elif idx >= baseline_len:
                 new_messages.append(msg)
-
         return new_messages
 
     def _message_role(self, message: Dict[str, Any]) -> str:
         return str(message.get("role") or message.get("type") or "").lower()
 
-    def _message_content(self, message: Dict[str, Any]) -> str:
+    def _message_text(self, message: Dict[str, Any]) -> str:
         content = message.get("content", "")
+
+        if isinstance(content, str):
+            return content
+
         if isinstance(content, list):
-            return "\n".join(str(item) for item in content)
-        return str(content or "")
+            parts: List[str] = []
+            for item in content:
+                if isinstance(item, str):
+                    parts.append(item)
+                    continue
+                if not isinstance(item, dict):
+                    continue
+
+                item_type = item.get("type")
+                if item_type in ("text", "output_text"):
+                    text = item.get("text")
+                    if text:
+                        parts.append(str(text))
+                elif item_type == "input_text":
+                    text = item.get("text")
+                    if text:
+                        parts.append(str(text))
+            return "\n".join(part for part in parts if part).strip()
+
+        if isinstance(content, dict):
+            if isinstance(content.get("text"), str):
+                return content["text"]
+
+        return ""
 
     def _get_hooks_headers(self) -> Dict[str, str]:
         return {
@@ -355,12 +376,7 @@ class OpenClawClient:
         }
 
 
-def create_client(
-    host: str,
-    hooks_token: str,
-    gateway_token: str,
-    timeout: int = 30,
-) -> OpenClawClient:
+def create_client(host: str, hooks_token: str, gateway_token: str, timeout: int = 30) -> OpenClawClient:
     """建立 OpenClaw Client"""
     config = OpenClawConfig(
         host=host,

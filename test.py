@@ -2,13 +2,13 @@
 Test script for OpenClaw Webhook Client
 
 Usage:
-    python test.py                               # Test sync call
-    python test.py --async                       # Test async call
-    python test.py --sessions                    # List sessions
-    python test.py --history                     # Get session history
-    python test.py --wake                        # Test wake endpoint
-    python test.py --message "Hello"             # Override message
-    python test.py --deliver                     # Deliver async reply to last channel
+    python3 test.py                               # Test sync call
+    python3 test.py --async                       # Test async call
+    python3 test.py --sessions                    # List sessions
+    python3 test.py --history                     # Get session history
+    python3 test.py --wake                        # Test wake endpoint
+    python3 test.py --message "Hello"             # Override message
+    python3 test.py --deliver                     # Deliver async reply to last channel
 """
 
 import argparse
@@ -28,15 +28,42 @@ def get_client() -> OpenClawClient:
     )
 
 
-def print_result(title: str, result):
+def dump(title: str, result):
     print("=" * 50)
     print(title)
     print("=" * 50)
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
 
+def summarize_tool_result(result):
+    if not isinstance(result, dict):
+        return result
+
+    output = {
+        "ok": result.get("ok"),
+        "status": result.get("status"),
+        "status_code": result.get("status_code"),
+    }
+
+    if "runId" in result:
+        output["runId"] = result.get("runId")
+    if "reply" in result:
+        output["reply"] = result.get("reply")
+    if "error" in result:
+        output["error"] = result.get("error")
+    if "details" in result:
+        output["details"] = result.get("details")
+    elif "result" in result:
+        details = result.get("result", {}).get("details")
+        if details is not None:
+            output["details"] = details
+        else:
+            output["result"] = result.get("result")
+
+    return output
+
+
 def test_sync_call(client: OpenClawClient, args):
-    """Test synchronous agent call"""
     result = client.call_agent_sync(
         message=args.message,
         name=args.name,
@@ -51,12 +78,11 @@ def test_sync_call(client: OpenClawClient, args):
         thinking=args.thinking,
         wake_mode=args.wake_mode,
     )
-    print_result("Testing SYNC call_agent_sync()", result)
+    dump("Testing SYNC call_agent_sync()", summarize_tool_result(result))
     return result
 
 
 def test_async_call(client: OpenClawClient, args):
-    """Test asynchronous agent call"""
     result = client.call_agent(
         message=args.message,
         name=args.name,
@@ -71,37 +97,34 @@ def test_async_call(client: OpenClawClient, args):
         timeout_seconds=args.timeout,
         request_timeout=args.request_timeout,
     )
-    print_result("Testing ASYNC call_agent()", result)
+    dump("Testing ASYNC call_agent()", summarize_tool_result(result))
     return result
 
 
 def test_wake(client: OpenClawClient, args):
-    """Test wake endpoint"""
     result = client.wake(args.message, mode=args.wake_mode)
-    print_result("Testing wake()", result)
+    dump("Testing wake()", summarize_tool_result(result))
     return result
 
 
 def test_list_sessions(client: OpenClawClient, args):
-    """Test list sessions"""
-    result = client.list_sessions(
+    details = client.list_sessions_details(
         kinds=args.kinds,
         limit=args.limit,
         active_minutes=args.active_minutes,
     )
-    print_result("Testing list_sessions()", result)
-    return result
+    dump("Testing list_sessions_details()", details)
+    return details
 
 
 def test_session_history(client: OpenClawClient, args, session_key: str):
-    """Test get session history"""
-    result = client.get_session_history(
+    details = client.get_session_history_details(
         session_key=session_key,
         limit=args.limit,
         include_tools=args.include_tools,
     )
-    print_result(f"Testing get_session_history({session_key})", result)
-    return result
+    dump(f"Testing get_session_history_details({session_key})", details)
+    return details
 
 
 def main():

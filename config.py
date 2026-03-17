@@ -26,3 +26,6 @@ OPENCLAW_TOKEN = "e21f26600d41d7979aa7e78529d250732557caed5add5e56"
 # This is separate from gateway auth token
 OPENCLAW_HOOKS_TOKEN = "shared-secret"
 OPENCLAW_HOOKS_PATH = "/hooks/agent"
+
+# Sessions API (for polling agent response)
+OPENCLAW_SESSIONS_PATH = "/tools/invoke"

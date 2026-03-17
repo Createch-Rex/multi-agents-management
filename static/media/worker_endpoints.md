@@ -11,7 +11,7 @@ X-Worker-Token: YOUR_TOKEN_HERE
 
 ## Endpoints List
 
-### Auth
+### Auth (no token required)
 | Endpoint | Method | Required Capability |
 |----------|--------|---------------------|
 | `/worker/auth/activate` | GET | (public, need agent_id) |

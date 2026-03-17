@@ -21,3 +21,8 @@ DATABASE_PORT = 3306
 
 OPENCLAW_HOST = "10.18.0.24:18789"
 OPENCLAW_TOKEN = "e21f26600d41d7979aa7e78529d250732557caed5add5e56"
+
+# Webhook config (for /hooks/agent endpoint)
+# This is separate from gateway auth token
+OPENCLAW_HOOKS_TOKEN = "e21f26600d41d7979aa7e78529d250732557caed5add5e56"
+OPENCLAW_HOOKS_PATH = "/hooks/agent"

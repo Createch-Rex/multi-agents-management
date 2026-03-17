@@ -9,6 +9,35 @@ X-Worker-Token: YOUR_TOKEN_HERE
 
 ---
 
+## OpenClaw Webhook (Worker 間溝通)
+
+呼叫其他 worker agent 時使用此 endpoint：
+
+```
+POST http://{OPENCLAW_HOST}/hooks/agent
+```
+
+Headers:
+```
+Authorization: Bearer {OPENCLAW_HOOKS_TOKEN}
+Content-Type: application/json
+```
+
+Body:
+```json
+{
+  "message": "任務描述",
+  "agentId": "worker-id",
+  "wakeMode": "now",
+  "deliver": false,
+  "timeoutSeconds": 120
+}
+```
+
+**重要**: 必須設 `deliver: false`，否則回覆會 send 去 webchat！
+
+---
+
 ## Endpoints List
 
 ### Auth (no token required)

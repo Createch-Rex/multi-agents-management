@@ -1,156 +1,128 @@
-import requests
-import config
+"""
+Test script for OpenClaw Webhook Client
+
+Usage:
+    python test.py              # Test sync call
+    python test.py --async      # Test async call
+    python test.py --sessions   # List sessions
+    python test.py --history    # Get session history
+"""
+
+import argparse
 import json
-import time
+from openclaw_client import create_client, OpenClawClient
+import config
 
 
-# Webhook 方式呼叫 Agent
-# 使用 /hooks/agent endpoint，唔會有 agent-to-agent announce 問題
+def get_client() -> OpenClawClient:
+    """Create OpenClaw client from config"""
+    return create_client(
+        host=config.OPENCLAW_HOST,
+        hooks_token=config.OPENCLAW_HOOKS_TOKEN,
+        gateway_token=config.OPENCLAW_TOKEN,
+        timeout=120
+    )
 
 
-def call_agent_async(message: str, agent_id: str, session_key: str, timeout: int = 120) -> dict:
-    """
-    透過 Webhooks 呼叫 Agent（異步，只返 runId）
+def test_sync_call(client: OpenClawClient):
+    """Test synchronous agent call"""
+    print("=" * 50)
+    print("Testing SYNC call_agent_sync()")
+    print("=" * 50)
     
-    Args:
-        message: Agent 要處理嘅訊息
-        agent_id: Agent ID
-        session_key: Session key (例如 "hook:worker:task-123")
-        timeout: 逾時秒數 (default: 120)
-    
-    Returns:
-        dict: { runId, status }
-    """
-    data = {
-        "message": message,
-        "sessionKey": session_key,
-        "agentId": agent_id,
-        "wakeMode": "now",
-        "deliver": False,
-        "timeoutSeconds": timeout,
-    }
-    
-    headers = {
-        "Authorization": f"Bearer {config.OPENCLAW_HOOKS_TOKEN}",
-        "Content-Type": "application/json"
-    }
-    
-    url = f"http://{config.OPENCLAW_HOST}{config.OPENCLAW_HOOKS_PATH}"
-    response = requests.post(url, json=data, headers=headers, timeout=timeout + 10)
-    return response.json()
-
-
-def get_session_history(session_key: str, limit: int = 10) -> dict:
-    """
-    攞 session history
-    
-    Args:
-        session_key: Session key
-        limit: 攞幾多條 message
-    
-    Returns:
-        dict: { messages: [...] }
-    """
-    data = {
-        "tool": "sessions_history",
-        "args": {
-            "sessionKey": session_key,
-            "limit": limit
-        }
-    }
-    
-    headers = {
-        "Authorization": f"Bearer {config.OPENCLAW_TOKEN}",
-        "Content-Type": "application/json"
-    }
-    
-    url = f"http://{config.OPENCLAW_HOST}{config.OPENCLAW_SESSIONS_PATH}"
-    response = requests.post(url, json=data, headers=headers)
-    return response.json()
-
-
-def call_agent_sync(message: str, agent_id: str, session_key: str, timeout: int = 120, poll_interval: int = 2) -> dict:
-    """
-    透過 Webhooks 呼叫 Agent 並等待回覆（同步）
-    
-    流程:
-    1. POST /hooks/agent → 返 runId
-    2. Poll sessions_history 等待 agent 回覆
-    3. 返 agent response
-    
-    Args:
-        message: Agent 要處理嘅訊息
-        agent_id: Agent ID
-        session_key: Session key
-        timeout: 逾時秒數
-        poll_interval: Poll 間隔秒數
-    
-    Returns:
-        dict: { status, reply, messages }
-    """
-    # 1. 觸發 webhook
-    webhook_result = call_agent_async(message, agent_id, session_key, timeout)
-    
-    if webhook_result.get("status") not in ["accepted", "ok"]:
-        return {
-            "status": "error",
-            "error": "Webhook failed",
-            "details": webhook_result
-        }
-    
-    run_id = webhook_result.get("runId")
-    print(f"[Webhook] Triggered, runId: {run_id}")
-    
-    # 2. Poll session history
-    start_time = time.time()
-    last_message_count = 0
-    
-    while time.time() - start_time < timeout:
-        time.sleep(poll_interval)
-        
-        history_result = get_session_history(session_key, limit=20)
-        
-        if history_result.get("ok") == False:
-            # 可能 session 未創建，繼續 poll
-            continue
-        
-        messages = history_result.get("result", {}).get("messages", [])
-        
-        # 檢查有冇新嘅 assistant message
-        if len(messages) > last_message_count:
-            # 搵最新嘅 assistant message
-            for msg in reversed(messages):
-                if msg.get("role") == "assistant":
-                    content = msg.get("content", "")
-                    # 檢查係唔係已經完成（唔包含 "..." 等不完整標記）
-                    if content and not content.endswith("..."):
-                        return {
-                            "status": "ok",
-                            "runId": run_id,
-                            "reply": content,
-                            "messages": messages
-                        }
-            
-            last_message_count = len(messages)
-    
-    return {
-        "status": "timeout",
-        "runId": run_id,
-        "error": f"Agent did not respond within {timeout} seconds",
-        "messages": get_session_history(session_key, limit=20).get("result", {}).get("messages", [])
-    }
-
-
-if __name__ == "__main__":
-    # 測試呼叫 agent (同步)
-    result = call_agent_sync(
+    result = client.call_agent_sync(
         message="你好嗎?你係邊個?",
         agent_id="kevin",
-        session_key="agent:kevin:man:test",
+        session_key="hook:kevin:test",
         timeout=120
     )
     
-    print("=" * 50)
-    print("Agent Response:")
-    print("=" * 50)
     print(json.dumps(result, ensure_ascii=False, indent=2))
+    return result
+
+
+def test_async_call(client: OpenClawClient):
+    """Test asynchronous agent call"""
+    print("=" * 50)
+    print("Testing ASYNC call_agent()")
+    print("=" * 50)
+    
+    result = client.call_agent(
+        message="Hello, who are you?",
+        agent_id="kevin",
+        session_key="hook:kevin:test",
+        deliver=False,
+        timeout_seconds=120
+    )
+    
+    print(f"Webhook triggered: {result}")
+    
+    if result.get("status") == "accepted":
+        run_id = result.get("runId")
+        print(f"RunId: {run_id}")
+        print("Agent is running... Poll session history for response.")
+    
+    return result
+
+
+def test_wake(client: OpenClawClient):
+    """Test wake endpoint"""
+    print("=" * 50)
+    print("Testing wake()")
+    print("=" * 50)
+    
+    result = client.wake("Test wake from Python client")
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return result
+
+
+def test_list_sessions(client: OpenClawClient):
+    """Test list sessions"""
+    print("=" * 50)
+    print("Testing list_sessions()")
+    print("=" * 50)
+    
+    result = client.list_sessions(limit=10)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return result
+
+
+def test_session_history(client: OpenClawClient, session_key: str):
+    """Test get session history"""
+    print("=" * 50)
+    print(f"Testing get_session_history({session_key})")
+    print("=" * 50)
+    
+    result = client.get_session_history(session_key, limit=10)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return result
+
+
+def main():
+    parser = argparse.ArgumentParser(description="OpenClaw Webhook Client Test")
+    parser.add_argument("--async", dest="async_mode", action="store_true", help="Test async call")
+    parser.add_argument("--sessions", action="store_true", help="List sessions")
+    parser.add_argument("--history", nargs="?", default=None, help="Get session history (optional session key)")
+    parser.add_argument("--wake", action="store_true", help="Test wake endpoint")
+    parser.add_argument("--agent", default="kevin", help="Agent ID to use")
+    parser.add_argument("--session-key", default="hook:kevin:test", help="Session key to use")
+    
+    args = parser.parse_args()
+    
+    client = get_client()
+    
+    if args.wake:
+        test_wake(client)
+    elif args.sessions:
+        test_list_sessions(client)
+    elif args.history is not None:
+        session_key = args.history or args.session_key
+        test_session_history(client, session_key)
+    elif args.async_mode:
+        test_async_call(client)
+    else:
+        test_sync_call(client)
+
+
+if __name__ == "__main__":
+    main()

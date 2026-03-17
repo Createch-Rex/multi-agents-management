@@ -12,6 +12,7 @@ class Project(Base):
     status = Column(String(255))
     workspace_path = Column(Text)
     owner_id = Column(String(255), comment="FK to user.user_id")
+    amount = Column(Float)
 
     def pre_delete(self, db: Session):
         pass

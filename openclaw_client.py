@@ -197,7 +197,7 @@ class OpenClawClient:
             request_timeout=min(self.config.timeout, timeout),
         )
 
-        if webhook_result.get("status") not in ["accepted", "ok"]:
+        if not webhook_result.get("ok", False):
             return {
                 "status": "error",
                 "error": "Webhook failed",

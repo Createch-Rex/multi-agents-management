@@ -12,7 +12,7 @@ class Worker(Base):
     system_prompt = Column(Text)
     token = Column(String(255))
     heartbeat_interval = Column(Integer, default=300)
-    status = Column(String(50), default="offline", comment="Enum: online/offline/busy")
+    status = Column(String(255), default="offline", comment="Enum: online/offline/busy")
     last_heartbeat = Column(DateTime, comment="Last heartbeat timestamp")
     capabilities = Column(Text, comment="JSON array of skills")
     max_concurrent_tasks = Column(Integer, default=1)

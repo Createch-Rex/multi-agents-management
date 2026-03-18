@@ -13,7 +13,7 @@ class Task(Base):
     worker_id = Column(String(255), comment="FK to worker.worker_id")
     status = Column(String(255))
     chat_session = Column(String(255))
-    priority = Column(String(50), default="medium", comment="Enum: high/medium/low")
+    priority = Column(String(255), default="medium", comment="Enum: high/medium/low")
     due_date = Column(DateTime, comment="Task due date")
     parent_task_id = Column(String(255), comment="FK to task.task_id for dependencies")
 

@@ -10,7 +10,7 @@ class Chat(Base):
     task_id = Column(String(255), comment="FK to task.task_id")
     role = Column(String(255))
     message = Column(Text)
-    message_type = Column(String(50), comment="Enum: user/agent/system")
+    message_type = Column(String(255), comment="Enum: user/agent/system")
 
     def pre_delete(self, db: Session):
         pass

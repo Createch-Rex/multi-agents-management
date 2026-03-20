@@ -4,6 +4,7 @@ from api.frontend.project import project_router
 from api.frontend.worker import worker_router
 from api.frontend.user import user_router
 from api.frontend.chat import chat_router
+from api.frontend.task import task_router
 
 
 frontend_router = APIRouter()
@@ -13,3 +14,4 @@ frontend_router.include_router(project_router, prefix="/project")
 frontend_router.include_router(worker_router, prefix="/worker")
 frontend_router.include_router(user_router, prefix="/user")
 frontend_router.include_router(chat_router, prefix="/chat")
+frontend_router.include_router(task_router, prefix="/task")

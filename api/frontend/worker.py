@@ -109,7 +109,7 @@ async def create_worker(request: Request, db: Session = Depends(common.get_db)):
     return common.standard_response(response_data={"worker": new_worker.get_dict()})
 
 
-@worker_router.put("/update")
+@worker_router.post("/update")
 @manage_utils.auth_required
 async def update_worker(request: Request, db: Session = Depends(common.get_db)):
     """更新 Worker 資料"""

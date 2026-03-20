@@ -104,7 +104,7 @@ async def create_chat(request: Request, db: Session = Depends(common.get_db)):
     return common.standard_response(response_data={"chat": new_chat.get_dict()})
 
 
-@chat_router.put("/update")
+@chat_router.post("/update")
 @manage_utils.auth_required
 async def update_chat(request: Request, db: Session = Depends(common.get_db)):
     """更新 Chat 訊息"""

@@ -106,7 +106,7 @@ async def create_project(request: Request, db: Session = Depends(common.get_db))
     return common.standard_response(response_data={"project": new_project.get_dict()})
 
 
-@project_router.put("/update")
+@project_router.post("/update")
 @manage_utils.auth_required
 async def update_project(request: Request, db: Session = Depends(common.get_db)):
     """更新項目資料"""

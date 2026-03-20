@@ -130,7 +130,7 @@ async def create_user(request: Request, db: Session = Depends(common.get_db)):
     return common.standard_response(response_data={"user": user_dict})
 
 
-@user_router.put("/update")
+@user_router.post("/update")
 @manage_utils.auth_required
 async def update_user(request: Request, db: Session = Depends(common.get_db)):
     """更新用戶資料"""

@@ -137,7 +137,7 @@ async def create_task(request: Request, db: Session = Depends(common.get_db)):
     return common.standard_response(response_data={"task": new_task.get_dict()})
 
 
-@task_router.put("/update")
+@task_router.post("/update")
 @manage_utils.auth_required
 async def update_task(request: Request, db: Session = Depends(common.get_db)):
     """更新任務資料"""
